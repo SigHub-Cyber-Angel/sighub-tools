@@ -1,4 +1,6 @@
 # SigHub jsondb
+[![Lint](https://github.com/SigHub-Cyber-Angel/sighub-tools/workflows/Lint%20jsondb/badge.svg)](https://github.com/SigHub-Cyber-Angel/sighub-tools/actions?query=workflow%3ALint%20jsondb)
+[![Test](https://github.com/SigHub-Cyber-Angel/sighub-tools/workflows/Test%20jsondb/badge.svg)](https://github.com/SigHub-Cyber-Angel/dashboard-backend/actions?query=workflow%3ATest%20jsondb)
 ## Introduction
 A TinyDB wrapper (https://github.com/msiemens/tinydb) providing document based log database and configuration database functionality.
 ## Supported Python Versions
