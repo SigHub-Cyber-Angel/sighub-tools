@@ -5,7 +5,7 @@ A TinyDB wrapper (https://github.com/msiemens/tinydb) providing document based l
 Unit tests are run for Python 3.7 - 3.9.
 ## Installation using pip
 ```
-pip3 install git+https://github.com/SigHub-Cyber-Angel/sighub-tools.git#egg=sighub.jsondb&subdirectory=jsondb
+pip3 install git+https://github.com/SigHub-Cyber-Angel/sighub-tools.git#egg=sighub.jsondb\&subdirectory=jsondb
 ```
 ## Examples
 ```
