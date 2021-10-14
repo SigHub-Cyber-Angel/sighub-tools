@@ -2,8 +2,13 @@
     database and configuration database functionality.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, InitVar, field
 from datetime import datetime
+
+from typing import (
+    Dict,
+    List
+)
 
 import enum
 import json
@@ -55,7 +60,7 @@ class BaseDB:
             curr_table.insert(entry)
 
     def insert_multiple(self, entries):
-        """ Insert multiple entries in database.
+        """ Insert multiple entries in the database.
         """
         if self.read_only:
             raise ReadOnlyError
@@ -93,8 +98,21 @@ class BaseDB:
 
         return entries
 
-    def get_field_in(self, field, values, negate=False):
-        """ Get all entries if the field matches one of the given values.
+    def delete_matches(self, filters):
+        """ Delete all entries that match the given key / value filters.
+        """
+        deleted = []
+        with TinyDB(self.path) as datastore:
+            curr_table = datastore.table(self.table, cache_size=0)
+
+            query = Query()
+
+            deleted = curr_table.remove(query.fragment(filters))
+
+        return deleted
+
+    def get_field_in(self, key, values, negate=False):
+        """ Get all entries if the key matches one of the given values.
         """
         entries = []
         with TinyDB(self.path) as datastore:
@@ -103,9 +121,9 @@ class BaseDB:
             query = Query()
 
             if negate:
-                entries = curr_table.search(~ query[field].one_of(values))
+                entries = curr_table.search(~ query[key].one_of(values))
             else:
-                entries = curr_table.search(query[field].one_of(values))
+                entries = curr_table.search(query[key].one_of(values))
 
         return entries
 
@@ -186,6 +204,22 @@ class LogDB(BaseDB):
 
         return entries
 
+    def delete_before(self, unix_timestamp):
+        """ Delete all entries from the database from before the given timestamp.
+            Returns True if entries were deleted.
+        """
+        deleted = []
+        with TinyDB(self.path) as datastore:
+            logs = datastore.table(self.table, cache_size=0)
+
+            query = Query()
+
+            deleted = logs.remove(query.ts < unix_timestamp)
+
+        if not deleted:
+            return False
+
+        return True
 
 @dataclass
 class RotatingLogDB(LogDB):
@@ -285,7 +319,115 @@ class RotatingLogDB(LogDB):
 
         return next_file
 
+@dataclass
+class KeyedDB(BaseDB):
+    """ NoSQL database with unique entries keyed on specific document field.
+
+        Attributes:
+            path: filesystem path for database storage
+            table: set current table (can be changed using set_table)
+            read_only: do not write to this database
+            keys: fields to be checked as primary keys for each table (leave default)
+            init_keys: fields to be checked as primary keys for the initial table
+    """
+    keys: Dict[str, List[str]] = field(default_factory=dict)
+    init_keys: InitVar[List[str]] = None
+
+    def __post_init__(self, init_keys):
+        """ Automatically set keys for initial table.
+        """
+        self.keys = {}
+        self.keys[self.table] = init_keys
+
+    def set_table(self, table, table_keys=None): # pylint: disable=W0221
+        """ Set the table to perform operations on.
+            Specify the keys for the table if it does not exist.
+        """
+        self.table = table
+
+        if table not in self.keys:
+            if table_keys is None:
+                raise MissingTableKeysError
+
+            self.keys[table] = table_keys
+
+    def insert(self, entry):
+        """ Insert an entry in the database.
+            The entry must contain unique values for the keys.
+        """
+
+        if [ key for key in self.keys[self.table] if key not in entry ]:
+            raise MissingKeyError
+
+        key_values = { key: entry[key] for key in self.keys[self.table] }
+        if self.get_matches(key_values):
+            raise KeyExistsError
+
+        BaseDB.insert(self, entry)
+
+    def insert_multiple(self, entries):
+        """ Insert multiple entries in the database.
+            The entry must contain unique values for the keys.
+        """
+
+        for entry in entries:
+            if [ key for key in self.keys[self.table] if key not in entry ]:
+                raise MissingKeyError
+
+            key_values = { key: entry[key] for key in self.keys[self.table] }
+            if self.get_matches(key_values):
+                raise KeyExistsError
+
+        BaseDB.insert_multiple(self, entries)
+
+    def get_entry(self, keys):
+        """ Get an entry from the database with the given key values.
+            Returns None if no entry is found.
+        """
+        if list(keys.keys()) != self.keys[self.table]:
+            raise InvalidKeysError
+
+        matches = self.get_matches(keys)
+
+        if not matches:
+            return None
+
+        return matches[0]
+
+    def delete_entry(self, keys):
+        """ Delete an entry from the database with the given key values.
+            Returns True if an entry was deleted.
+        """
+        if list(keys.keys()) != self.keys[self.table]:
+            raise InvalidKeysError
+
+        deleted = self.delete_matches(keys)
+
+        if not deleted:
+            return False
+
+        return True
 
 class ReadOnlyError(Exception):
-    """ Exception to be thrown when a write action is attempted on a read-only database
+    """ Exception to be thrown when a write action is attempted on a read-only database.
+    """
+
+class KeyExistsError(Exception):
+    """ Exception to be thrown when an entry is added to a KeyedDB for which another entry
+        with the same keys already exists.
+    """
+
+class MissingKeyError(Exception):
+    """ Exception to be thrown when an entry is added to a KeyedDB if the entry does not
+        contain the keys specified for the table.
+    """
+
+class MissingTableKeysError(Exception):
+    """ Exception to be thrown when set_table is called on a KeyedDB for a new table and
+        the keys parameter is empty.
+    """
+
+class InvalidKeysError(Exception):
+    """ Exception to be thrown when a KeyedDB operation requiring keys is called with
+        keys that do not match the current tables keys.
     """

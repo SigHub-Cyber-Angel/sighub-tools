@@ -4,7 +4,13 @@ import unittest
 
 from sighub.jsondb import (
     BaseDB,
+    InvalidKeysError,
+    KeyedDB,
+    KeyExistsError,
     LogDB,
+    MissingKeyError,
+    MissingTableKeysError,
+    ReadOnlyError,
     RotatingLogDB
 )
 
@@ -87,6 +93,12 @@ class BaseDBTests(unittest.TestCase):
         self.assertEqual(self.expected['NEGATE_FIELD_IN'], negated, msg=f'negated get field in entries are not {self.expected.get("NEGATE_FIELD_IN")}: {negated}')
 
         os.unlink('tmp/field_in.db')
+
+    def test_read_only(self):
+        db = BaseDB('tmp/read_only.db', 'ReadOnly', True)
+
+        with self.assertRaises(ReadOnlyError, msg='read-only insert does not raise ReadOnlyError') as exception_test:
+            db.insert({ "key": "value" })
 
     def tearDown(self):
         os.rmdir('tmp')
@@ -223,6 +235,121 @@ class RotatingLogDBTests(unittest.TestCase):
 
         os.unlink('tmp/rotate.db')
         os.unlink('tmp/rotate.db.0')
+
+    def tearDown(self):
+        os.rmdir('tmp')
+
+class KeyedDBTests(unittest.TestCase):
+    def setUp(self):
+        self.expected = {
+            'ALL_KEYED': [
+                {'key1': 1, 'key2': 2},
+                {'key1': 2, 'key2': 3},
+                {'key1': 3, 'key2': 4}
+            ],
+            'DELETED': True,
+            'GET_KEYED': {'key1': 2, 'key2': 3},
+            'KEYS': {'KeyedTable': ['key1', 'key2']},
+            'None' : None,
+            'NOT_DELETED': False
+        }
+        self.input = {
+            'DELETED': {'key1': 1, 'key2': 2},
+            'KEYED': {'key1': 1, 'key2': 2},
+            'KEYED_MULTIPLE': [
+                {'key1': 2, 'key2': 3},
+                {'key1': 3, 'key2': 4}
+            ],
+            'KEYS': ['key1', 'key2'],
+            'NOT_DELETED': {'key1': 10, 'key2': 10},
+            'WRONG_KEYS': {'keyA': 1, 'keyB': 2},
+        }
+        os.mkdir('tmp')
+
+    def test_table_keys(self):
+        db = KeyedDB('tmp/keyed.db', 'KeyedTable', False, init_keys=self.input['KEYS'])
+
+        self.assertEqual(self.expected['KEYS'], db.keys, msg=f'table keys are not {self.expected.get("KEYS")}: {db.keys}')
+
+    def test_missing_table_keys(self):
+        db = KeyedDB('tmp/missing.db', 'HasKeys', False, init_keys=self.input['KEYS'])
+
+        with self.assertRaises(MissingTableKeysError, msg='set_table does not raise MissingTableKeysError') as exception_test:
+            db.set_table('NoKeys')
+
+    def test_missing_key(self):
+        db = KeyedDB('tmp/keyed.db', 'KeyedTable', False, init_keys=self.input['KEYS'])
+
+        with self.assertRaises(MissingKeyError, msg='insert does not raise MissingKeyError') as exception_test:
+            db.insert(self.input['WRONG_KEYS'])
+
+        with self.assertRaises(MissingKeyError, msg='insert_multiple does not raise MissingKeyError') as exception_test:
+            db.insert_multiple([ self.input['WRONG_KEYS'] ])
+
+    def test_key_exists(self):
+        db = KeyedDB('tmp/keyed.db', 'KeyedTable', False, init_keys=self.input['KEYS'])
+
+        db.insert(self.input['KEYED'])
+
+        with self.assertRaises(KeyExistsError, msg='insert does not raise KeyExistsError') as exception_test:
+            db.insert(self.input['KEYED'])
+
+        with self.assertRaises(KeyExistsError, msg='insert_multiple does not raise KeyExistsError') as exception_test:
+            db.insert_multiple([ self.input['KEYED'] ])
+
+        os.unlink('tmp/keyed.db')
+
+    def test_invalid_key(self):
+        db = KeyedDB('tmp/keyed.db', 'KeyedTable', False, init_keys=self.input['KEYS'])
+
+        with self.assertRaises(InvalidKeysError, msg='get_entry does not raise InvalidKeysError') as exception_test:
+            db.get_entry(self.input['WRONG_KEYS'])
+
+        with self.assertRaises(InvalidKeysError, msg='delete_entry does not raise InvalidKeysError') as exception_test:
+            db.delete_entry(self.input['WRONG_KEYS'])
+
+    def test_insert_get(self):
+        db = KeyedDB('tmp/keyed.db', 'KeyedTable', False, init_keys=self.input['KEYS'])
+
+        db.insert(self.input['KEYED'])
+        db.insert_multiple(self.input['KEYED_MULTIPLE'])
+        all_entries = list(db.get_all())
+        self.assertEqual(self.expected['ALL_KEYED'], all_entries, msg=f'insert and insert_multiple is not {self.expected.get("ALL_KEYED")}: {all_entries}')
+
+        get = db.get_entry(self.expected['GET_KEYED'])
+        self.assertEqual(self.expected['GET_KEYED'], get, msg=f'get_entry is not {self.expected.get("GET_KEYED")}: {get}')
+
+        os.unlink('tmp/keyed.db')
+
+    def test_get_none(self):
+        db = KeyedDB('tmp/keyed.db', 'KeyedTable', False, init_keys=self.input['KEYS'])
+
+        db.insert(self.input['KEYED'])
+
+        get = db.get_entry(self.expected['GET_KEYED'])
+        self.assertEqual(self.expected['None'], get, msg=f'get_entry is not {self.expected.get("None")}: {get}')
+
+        os.unlink('tmp/keyed.db')
+
+    def test_delete_entry(self):
+        db = KeyedDB('tmp/keyed.db', 'KeyedTable', False, init_keys=self.input['KEYS'])
+
+        db.insert(self.input['DELETED'])
+
+        deleted = db.delete_entry(self.input['DELETED'])
+        self.assertEqual(self.expected['DELETED'], deleted, msg=f'delete_entry is not {self.expected.get("DELETED")}: {deleted}')
+
+        os.unlink('tmp/keyed.db')
+
+    def test_not_deleted(self):
+        db = KeyedDB('tmp/keyed.db', 'KeyedTable', False, init_keys=self.input['KEYS'])
+
+        db.insert(self.input['KEYED'])
+
+        deleted = db.delete_entry(self.input['NOT_DELETED'])
+        self.assertEqual(self.expected['NOT_DELETED'], deleted, msg=f'delete_entry is not {self.expected.get("NOT_DELETED")}: {deleted}')
+
+        os.unlink('tmp/keyed.db')
 
     def tearDown(self):
         os.rmdir('tmp')
