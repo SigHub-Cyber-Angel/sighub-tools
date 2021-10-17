@@ -402,7 +402,7 @@ class KeyedDB(BaseDB):
 
         key_values = { key: entry[key] for key in self.keys[self.table] }
 
-        updated = self.update_insert(entry, key_values)
+        self.update_insert(entry, key_values)
 
     def get_entry(self, keys):
         """ Get an entry from the database with the given key values.
