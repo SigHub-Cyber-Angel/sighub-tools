@@ -251,7 +251,8 @@ class KeyedDBTests(unittest.TestCase):
             'GET_KEYED': {'key1': 2, 'key2': 3},
             'KEYS': {'KeyedTable': ['key1', 'key2']},
             'None' : None,
-            'NOT_DELETED': False
+            'NOT_DELETED': False,
+            'UPDATED': {'key1': 1, 'key2': 2, 'update': 'update'}
         }
         self.input = {
             'DELETED': {'key1': 1, 'key2': 2},
@@ -318,6 +319,17 @@ class KeyedDBTests(unittest.TestCase):
 
         get = db.get_entry(self.expected['GET_KEYED'])
         self.assertEqual(self.expected['GET_KEYED'], get, msg=f'get_entry is not {self.expected.get("GET_KEYED")}: {get}')
+
+        os.unlink('tmp/keyed.db')
+
+    def test_update(self):
+        db = KeyedDB('tmp/keyed.db', 'KeyedTable', False, init_keys=self.input['KEYS'])
+
+        db.insert(self.input['KEYED'])
+        db.update(self.expected['UPDATED'])
+        all_entries = list(db.get_all())
+
+        self.assertEqual([ self.expected['UPDATED'] ], all_entries, msg=f'update is not {[ self.expected.get("UPDATED") ]}: {all_entries}')
 
         os.unlink('tmp/keyed.db')
 

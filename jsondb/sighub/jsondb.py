@@ -71,6 +71,19 @@ class BaseDB:
             for entry in entries:
                 curr_table.insert(entry)
 
+    def update_insert(self, entry, filters):
+        """ Update or insert an in the database based on the filters.
+        """
+        updated = []
+        with TinyDB(self.path) as datastore:
+            curr_table = datastore.table(self.table, cache_size=0)
+
+            query = Query()
+
+            updated = curr_table.upsert(entry, query.fragment(filters))
+
+        return updated
+
     def get_all(self):
         """ Get all database entries.
         """
@@ -379,6 +392,17 @@ class KeyedDB(BaseDB):
                 raise KeyExistsError
 
         BaseDB.insert_multiple(self, entries)
+
+    def update(self, entry):
+        """ Update an entry in the database with the given key values.
+            Inserts the entry if it does not exist.
+        """
+        if [ key for key in self.keys[self.table] if key not in entry ]:
+            raise MissingKeyError
+
+        key_values = { key: entry[key] for key in self.keys[self.table] }
+
+        updated = self.update_insert(entry, key_values)
 
     def get_entry(self, keys):
         """ Get an entry from the database with the given key values.

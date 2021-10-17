@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='sighub.jsondb',
-    version='0.1.0',
+    version='0.3.0',
     author='James Hulka',
     author_email='james@sighub.io',
     description='A TinyDB wrapper (https://github.com/msiemens/tinydb)'  \
