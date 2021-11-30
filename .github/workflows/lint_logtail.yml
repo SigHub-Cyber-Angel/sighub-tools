@@ -32,5 +32,5 @@ jobs:
         pip install pylint
         pip install -r requirements.txt
     - name: pylint
-      working-directory: ./logtai
+      working-directory: ./logtail
       run: pylint sighub/*.py
