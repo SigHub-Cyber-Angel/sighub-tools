@@ -2,7 +2,11 @@
 
 # pylint: disable=missing-docstring
 
-import io, logging, os, time, traceback
+import io
+import logging
+import os
+import time
+import traceback
 from twisted.internet import inotify
 from twisted.python import filepath
 
@@ -41,7 +45,7 @@ class LogTail:
             self.notifier = inotify.INotify()
 
             # the file
-            self.file = open(file_path)
+            self.file = open(file_path) # pylint: disable=unspecified-encoding disable=consider-using-with
             self.f_ino = os.stat(self.path).st_ino
 
             # read the entire file
@@ -76,7 +80,7 @@ class LogTail:
 
             self.notifier = inotify.INotify()
 
-            self.file = open(self.path)
+            self.file = open(self.path) # pylint: disable=unspecified-encoding disable=consider-using-with
             self.f_ino = os.stat(self.path).st_ino
 
             self.notifier.startReading()
