@@ -40,6 +40,7 @@ class LogTail:
             # listen for file change events
             self.notifier = inotify.INotify()
 
+            # the file
             self.file = open(file_path)
             self.f_ino = os.stat(self.path).st_ino
 

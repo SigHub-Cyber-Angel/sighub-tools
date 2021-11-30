@@ -113,7 +113,7 @@ class LogTailTests(unittest.TestCase):
         # make sure the reactor stops
         reactor.callLater(1, reactor.stop)
 
-        # run the test
+        # run the test using a real reactor
         reactor.run()
 
         self.assertEqual(self.expected['TAIL'], read, msg=f'read is not {self.expected.get("TAIL")}: {read}')
