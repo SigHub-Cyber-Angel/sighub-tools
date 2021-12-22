@@ -51,7 +51,8 @@ def install_packages(packages, only=None, exclude=None):
     for package in packages:
         if exclude is not None and package in exclude:
             continue
-        elif only is not None and package not in only:
+
+        if only is not None and package not in only:
             continue
 
         output = f'{output}{install_upgrade(package)}'
