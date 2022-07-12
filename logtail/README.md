@@ -26,9 +26,9 @@ pip3 install git+https://github.com/SigHub-Cyber-Angel/sighub-tools.git#egg=sigh
 >>> def check_tails():
 >>>     global syslog_tail
 >>> 		
->>> if syslog_tail.state() == TAIL_ROTATED:
->>>     logging.info("rotating syslog reader")
->>>     syslog_tail.reset()
+>>>     if syslog_tail.state() == TAIL_ROTATED:
+>>>         logging.info("rotating syslog reader")
+>>>         syslog_tail.reset()
 >>> 		
 >>> def error_handler(error):
 >>>     logging.error(error)
