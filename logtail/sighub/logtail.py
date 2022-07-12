@@ -76,6 +76,12 @@ class LogTail:
             pass
 
         try:
+            self.file.close()
+        except: # pylint: disable=W0702
+            # in case we can't close the file, push on
+            pass
+
+        try:
             self.fpath = filepath.FilePath(self.path)
 
             self.notifier = inotify.INotify()
@@ -109,7 +115,6 @@ class LogTail:
             return TAIL_ERROR
 
         return TAIL_ROTATED
-
 
     def reader(self, ignored, fpath, mask): # pylint: disable=W0613
         """ reader called when file is changed
@@ -149,3 +154,12 @@ class LogTail:
                     line = self.file.readline()
         except: # pylint: disable=W0702
             self.error_callback(traceback.format_exc())
+
+    def __del__(self):
+        """ cleanup open file
+        """
+        try:
+            self.file.close()
+        except: # pylint: disable=W0702
+            # in case we can't close the file, the end
+            pass
