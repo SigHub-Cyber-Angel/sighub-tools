@@ -1,10 +1,12 @@
 import os
 import unittest
 
+from twisted.internet.task import Clock
 from twisted.internet import reactor
 
 from sighub.logtail import (
     LogTail,
+    RotatingLogTail,
     TAIL_ROTATED,
     TAIL_EXISTS
 )
@@ -120,6 +122,68 @@ class LogTailTests(unittest.TestCase):
 
         
         os.unlink('tmp/tail.log')
+
+    def tearDown(self):
+        os.rmdir('tmp')
+
+class RotatingLogTailTests(unittest.TestCase):
+    def setUp(self):
+        self.expected = {
+            'TAIL_EXISTS': TAIL_EXISTS,
+        }
+        self.input = {
+            'TAIL': [
+                '00:00:00 abcd\n',
+                '00:01:00 efgh\n'
+            ]
+        }
+        os.mkdir('tmp')
+
+    def test_tail_exists(self):
+        with open('tmp/tail_exists.log', 'w') as log:
+            log.writelines(self.input['TAIL'])
+
+        def _reader(line):
+            pass
+
+        def _handler(error):
+            pass
+
+        tail = RotatingLogTail('tmp/tail_exists.log', _reader, _handler, reactor=None, full=True)
+
+        result = tail.state()
+        self.assertEqual(self.expected['TAIL_EXISTS'], result, msg=f'state is not {self.expected.get("TAIL_EXISTS")}: {result}')
+
+        
+        os.unlink('tmp/tail_exists.log')
+
+    def test_tail_rotated(self):
+        with open('tmp/tail_rotated.log', 'w') as log:
+            log.writelines(self.input['TAIL'])
+
+        def _reader(line):
+            pass
+
+        def _handler(error):
+            pass
+
+        # inject a clock in RotatingLogTail before the rotate check task is started
+        clock = Clock()
+        tail = RotatingLogTail('tmp/tail_rotated.log', _reader, _handler, reactor=None, full=True, _clock=clock)
+
+        # remove and replace the file
+        os.unlink('tmp/tail_rotated.log')
+        with open('tmp/tail_rotated.log', 'w') as log:
+            log.writelines(self.input['TAIL'])
+
+        # trigger rotation handling
+        clock.advance(10)
+
+        result = tail.state()
+        self.assertEqual(self.expected['TAIL_EXISTS'], result, msg=f'state is not {self.expected.get("TAIL_EXISTS")}: {result}')
+
+        
+        os.unlink('tmp/tail_rotated.log')
 
     def tearDown(self):
         os.rmdir('tmp')

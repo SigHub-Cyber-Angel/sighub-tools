@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='sighub.logtail',
-    version='0.1.0',
+    version='0.2.0',
     author='James Hulka',
     author_email='james@sighub.io',
     description='Ansynchronous log tail for use with the Twisted framework (https://twistedmatrix.com)',

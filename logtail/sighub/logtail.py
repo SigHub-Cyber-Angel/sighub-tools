@@ -7,7 +7,7 @@ import logging
 import os
 import time
 import traceback
-from twisted.internet import inotify
+from twisted.internet import inotify, task
 from twisted.python import filepath
 
 # log states
@@ -45,7 +45,7 @@ class LogTail:
             self.notifier = inotify.INotify()
 
             # the file
-            self.file = open(file_path) # pylint: disable=unspecified-encoding disable=consider-using-with
+            self.file = open(self.path) # pylint: disable=E0012
             self.f_ino = os.stat(self.path).st_ino
 
             # read the entire file
@@ -86,7 +86,7 @@ class LogTail:
 
             self.notifier = inotify.INotify()
 
-            self.file = open(self.path) # pylint: disable=unspecified-encoding disable=consider-using-with
+            self.file = open(self.path) # pylint: disable=E0012
             self.f_ino = os.stat(self.path).st_ino
 
             self.notifier.startReading()
@@ -163,3 +163,39 @@ class LogTail:
         except: # pylint: disable=W0702
             # in case we can't close the file, the end
             pass
+
+class RotatingLogTail(LogTail):
+    """ Tail a log file asynchronously and reset tail if the log rotates.
+    """
+
+    # pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-arguments
+    def __init__(self, file_path, line_callback, error_callback, reactor=None, \
+                    full=False, timeout=180, check_interval=10, _clock=None):
+        """
+        @param file_path: the log file the be tailed
+        @param line_callback: a function to process lines from the file
+        @param error_callback: function to call with traceback in case of exception
+        @param reactor: the reactor running this class
+        @param full: read the full file on initialisation
+        @param timeout: how long to wait to see if the file has rotated
+        @param check_interval: how often to check for file rotation
+        @param _clock: for unit testing only
+        """
+        # initialize the tail
+        super().__init__(file_path, line_callback, error_callback, reactor=reactor, \
+                            full=full, timeout=timeout)
+
+        # check the log tail at an interval to ensure it is still alive
+        check_task = task.LoopingCall(self._check_rotate)
+        if _clock is not None:
+            check_task.clock.callLater = _clock.callLater
+
+        check_task.start(check_interval, now=False)
+
+    def _check_rotate(self):
+        """ checks whether the log has rotated and initiates reset on rotate
+        """
+        if self.state() == TAIL_ROTATED:
+            logging.info("rotating syslog reader")
+            self.reset()

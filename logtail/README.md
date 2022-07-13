@@ -10,6 +10,7 @@ Unit tests are run for Python 3.7 - 3.9.
 pip3 install git+https://github.com/SigHub-Cyber-Angel/sighub-tools.git#egg=sighub.logtail\&subdirectory=logtail
 ```
 ## Examples
+### External rotation handling
 ```
 >>> import logging
 >>> from sighub.logtail import LogTail, TAIL_ROTATED
@@ -38,11 +39,40 @@ pip3 install git+https://github.com/SigHub-Cyber-Angel/sighub-tools.git#egg=sigh
 >>>     global syslog_tail
 >>> 		
 >>>     logging.info("tailing syslog")
->>>     syslog_tail = logtail(path, syslog_reader, error_handler, reactor=reactor, full=True)
+>>>     syslog_tail = LogTail(path, syslog_reader, error_handler, reactor=reactor, full=True)
 >>> 		
 >>>     # check log tails to ensure they are still alive every 10 seconds
->>>     tails_task = task.loopingcall(check_tails)
+>>>     tails_task = task.LoopingCall(check_tails)
 >>>     tails_task.start(10)
+>>> 		
+>>>     logging.info("finished startup")
+>>>     reactor.run()
+>>> 		
+>>> main()
+```
+### Rotation handling included
+```
+>>> import logging
+>>> from sighub.logtail import RotatingLogTail
+>>> from twisted.internet import reactor, task
+>>> 
+>>> logging.basicConfig(level="INFO")
+>>> 
+>>> path = '/var/log/syslog'
+>>> syslog_tail = None
+>>> 
+>>> def syslog_reader(line):
+>>>     # do something with the log lines here
+>>>     pass
+>>> 
+>>> def error_handler(error):
+>>>     logging.error(error)
+>>> 		
+>>> def main():
+>>>     global syslog_tail
+>>> 		
+>>>     logging.info("tailing syslog")
+>>>     syslog_tail = RotatingLogTail(path, syslog_reader, error_handler, reactor=reactor, full=True)
 >>> 		
 >>>     logging.info("finished startup")
 >>>     reactor.run()
