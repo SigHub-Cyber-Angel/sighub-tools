@@ -13,6 +13,7 @@ pip3 install git+https://github.com/SigHub-Cyber-Angel/sighub-tools.git#egg=sigh
 ```
 >>> import logging
 >>> from sighub.logtail import LogTail, TAIL_ROTATED
+>>> from twisted.internet import reactor, task
 >>> 
 >>> logging.basicConfig(level="INFO")
 >>> 
