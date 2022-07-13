@@ -45,7 +45,7 @@ class LogTail:
             self.notifier = inotify.INotify()
 
             # the file
-            self.file = open(self.path) # pylint: disable=E0012
+            self.file = open(self.path) # pylint: disable=E0012 disable=W1514 disable=R1732
             self.f_ino = os.stat(self.path).st_ino
 
             # read the entire file
@@ -86,7 +86,7 @@ class LogTail:
 
             self.notifier = inotify.INotify()
 
-            self.file = open(self.path) # pylint: disable=E0012
+            self.file = open(self.path) # pylint: disable=E0012 disable=W1514 disable=R1732
             self.f_ino = os.stat(self.path).st_ino
 
             self.notifier.startReading()
