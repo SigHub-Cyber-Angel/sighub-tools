@@ -31,4 +31,4 @@ jobs:
       run: pip install -r requirements.txt
     - name: Unittests
       working-directory: ./capture
-      run: python -m unittest test/*
+      run: sudo python -m unittest test/*
