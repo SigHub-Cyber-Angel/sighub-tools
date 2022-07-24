@@ -198,7 +198,7 @@ class Capture:
         """
 
         if self.event_loop is None:
-            raise NoEventLoopError("event_loop not set before calling open")
+            raise NoEventLoopError("event_loop not set before calling enable")
 
         # create a socket to capture ethernet frames
         self.listener = socket.socket(socket.PF_PACKET, socket.SOCK_RAW, ETH_P_ALL)
