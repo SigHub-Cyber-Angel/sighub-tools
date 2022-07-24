@@ -173,7 +173,7 @@ class Capture:
             self.on_stop()
 
     def _callback(self) -> None:
-        """ Pass packets to the callback.
+        """ Receive and pass packets to the callback.
         """
 
         self.callback(self.listener.recv(9000))
