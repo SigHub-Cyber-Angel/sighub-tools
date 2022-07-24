@@ -1,4 +1,4 @@
-name: Test apt
+name: Test capture
 on:
   push:
     branches:
