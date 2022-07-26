@@ -9,6 +9,6 @@ A pure Python implementation of an async packet capture with an optional BPF fil
 [sighub-jsondb](jsondb/README.md)\
 A TinyDB wrapper (https://github.com/msiemens/tinydb) providing log database and configuration database functionality.\
 [sighub-logtail](logtail/README.md)\
-Asynchronous log tail for use with the Twisted framework (https://twistedmatrix.com).\
+Asynchronous log tail for use with the Twisted framework (https://twistedmatrix.com). \
 [sighub-twisted](twisted/README.md)\
 Wrapper functions and classes for common patterns used with the Twisted framework (https://twistedmatrix.com).
