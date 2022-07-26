@@ -137,6 +137,7 @@ class ReaderEventLoopWrapper():
         """ Do nothing if the connection is lost.
         """
 
+    # pylint: disable=useless-option-value
     # pylint: disable=no-self-use
     # pylint: disable=invalid-name
     def logPrefix(self):
