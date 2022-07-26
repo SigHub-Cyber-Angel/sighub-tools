@@ -65,11 +65,86 @@ class LoopingCallStarter(task.LoopingCall):
             logging.error(err)
 
         if self.exit_on_err:
-            _stop_running()
+            stop_running()
         elif not self.running:
             self._start()
 
-def _stop_running():
+class ReaderEventLoopWrapper():
+    """ Wrapper converting an asyncio event_loop.add_reader call to
+        reactor.addReader compatible class.
+
+        Examples
+
+        Use sighub.capture as a twisted reader:
+        from twisted.internet import reactor
+        import dpkt
+
+        from sighub.capture import Capture
+        from sighub.twisted import ReaderEventLoopWrapper, stop_running
+
+        def print_packets(data):
+            # print the IP protocol layer
+            eth = dpkt.ethernet.Ethernet(data)
+            print(repr(eth.data))
+
+        def main():
+            # create a capture
+            cap = Capture('eth0', callback=print_packets, on_stop=stop_running)
+            # pass a reader instance to the capture as the event loop
+            cap.set_event_loop(ReaderEventLoopWrapper())
+
+            # enable the capture which calls ReaderEventLoopWrapper.add_reader
+            cap.enable()
+
+            # add the capture event loop (instance of ReaderEventLoopWrapper) as a reader
+            reactor.addReader(cap.event_loop)
+
+            # start the twisted reactor
+            reactor.run()
+    """
+
+    def __init__(self):
+        """ Initialise object internals.
+        """
+        self.callback = None
+        self.socket_fd = None
+
+    # pylint: disable=invalid-name
+    def doRead(self):
+        """ Simply calls the callback.
+        """
+        self.callback()
+
+    def add_reader(self, fileno, callback):
+        """ Make add_reader reactor.addReader compatible.
+
+            @param fileno: the integer representation of a PF_PACKET, SOCK_RAW socket fd
+            @param callback: function to call on read (should handle socket.recv)
+        """
+
+        # set socket fileno
+        self.socket_fd = fileno
+
+        # set callback to be used in doRead
+        self.callback = callback
+
+    def fileno(self):
+        """ The file descriptor to be read.
+        """
+        return self.socket_fd
+
+    def connectionLost(self, reason):
+        """ Do nothing if the connection is lost.
+        """
+
+    # pylint: disable=no-self-use
+    # pylint: disable=invalid-name
+    def logPrefix(self):
+        """ Log prefix for this reader.
+        """
+        return 'ReaderEventLoopWrapper'
+
+def stop_running():
     """ Stop the reactor if it is running.
     """
     # pylint: disable=no-member

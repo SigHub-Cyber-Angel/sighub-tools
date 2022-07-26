@@ -1,7 +1,16 @@
+import shutil
 import unittest
 
+# The tests are run from the twisted directory which contains sighub
+# this overrides any sighub standard python libraries so capture
+# needs to be added to the sighub library folder so we find it.
+CAPTURE_SRC = '../capture/sighub/capture.py'
+CAPTURE_DST = 'sighub/capture.py'
+shutil.copy(CAPTURE_SRC, CAPTURE_DST)
+
+from sighub.capture import Capture
 from twisted.internet.task import Clock
-from sighub.twisted import LoopingCallStarter
+from sighub.twisted import LoopingCallStarter, ReaderEventLoopWrapper
 
 def dummy_call():
     pass
@@ -85,6 +94,33 @@ class LoopingCallStarterTests(unittest.TestCase):
             msg=f'running is not {self.expected.get("OKAY_RUNNING")}: {new.running}')
         self.assertNotEqual(self.expected['OKAY_NOT_STARTTIME'], new.starttime, \
             msg=f'starttime is {self.expected.get("OKAY_NOT_STARTTIME")}: {new.starttime}')
+
+    def tearDown(self):
+        pass
+
+class ReaderEventLoopWrapperTests(unittest.TestCase):
+    def setUp(self):
+        self.input = {
+            'CALLBACK': dummy_call,
+            'IFACE': 'lo'
+        }
+
+    def test_add_reader(self):
+        # create a capture
+        test_capture = Capture(self.input['IFACE'], callback=self.input['CALLBACK'])
+
+        # pass a reader instance to the capture as the event loop
+        loop_wrapper = ReaderEventLoopWrapper()
+        test_capture.set_event_loop(loop_wrapper)
+
+        # enable the capture which calls ReaderEventLoopWrapper.add_reader
+        test_capture.enable()
+
+        self.assertEqual(test_capture._callback, loop_wrapper.callback,
+            msg=f'wrapper callback is not {test_capture._callback}: {loop_wrapper.callback}')
+
+        self.assertNotEqual(-1, loop_wrapper.fileno(),
+            msg=f'wrapper fileno is -1: {loop_wrapper.fileno()}')
 
     def tearDown(self):
         pass

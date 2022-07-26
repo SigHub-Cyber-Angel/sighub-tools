@@ -1,1 +1,2 @@
 twisted>=18.9.0
+git+https://github.com/SigHub-Cyber-Angel/sighub-tools.git#egg=sighub.capture&subdirectory=capture

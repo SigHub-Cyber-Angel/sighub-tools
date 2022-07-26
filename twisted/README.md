@@ -34,5 +34,36 @@ pip3 install git+https://github.com/SigHub-Cyber-Angel/sighub-tools.git#egg=sigh
 >>>     logging.info("finished startup")
 >>>     reactor.run()
 >>> 		
->>> main()
+>>> if __name__ == '__main__':
+>>>     main()
+
+>>> # Use sighub.capture as a twisted reader:
+>>> from twisted.internet import reactor
+>>> import dpkt
+>>> 
+>>> from sighub.capture import Capture
+>>> from sighub.twisted import ReaderEventLoopWrapper, stop_running
+>>> 
+>>> def print_packets(data):
+>>>     # print the IP protocol layer
+>>>     eth = dpkt.ethernet.Ethernet(data)
+>>>     print(repr(eth.data))
+>>> 
+>>> def main():
+>>>     # create a capture
+>>>     cap = Capture('eth0', callback=print_packets, on_stop=stop_running)
+>>>     # pass a reader instance to the capture as the event loop
+>>>     cap.set_event_loop(ReaderEventLoopWrapper())
+>>> 
+>>>     # enable the capture which calls ReaderEventLoopWrapper.add_reader
+>>>     cap.enable()
+>>> 
+>>>     # add the capture event loop (instance of ReaderEventLoopWrapper) as a reader
+>>>     reactor.addReader(cap.event_loop)
+>>> 
+>>>     # start the twisted reactor
+>>>     reactor.run()
+>>>
+>>> if __name__ == '__main__':
+>>>     main()
 ```
