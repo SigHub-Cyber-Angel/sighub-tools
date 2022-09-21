@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='sighub.twisted',
-    version='2.0.0',
+    version='2.1.0',
     author='James Hulka',
     author_email='james@sighub.io',
     description='Wrapper functions and classes for common patterns used with the Twisted framework (https://twistedmatrix.com)',

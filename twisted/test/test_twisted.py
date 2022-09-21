@@ -1,3 +1,4 @@
+import json
 import shutil
 import unittest
 
@@ -27,8 +28,10 @@ class LoopingCallStarterTests(unittest.TestCase):
             'INIT_NOW': False,
             'INIT_EXIT': False,
             'INIT_RUNNING': True,
+            'INIT_DUMP_PATH': None,
             'ERROR_RUNNING': True,
             'ERROR_ERRORS': [ '<twisted.python.failure.Failure builtins.Exception: >' ],
+            'DUMP_LINE': '    raise Exception()',
             'EXIT_RUNNING': False,
             'EXIT_ERRORS': [ '<twisted.python.failure.Failure builtins.Exception: >' ],
             'EXIT_REACTOR_RUNNING': False,
@@ -53,6 +56,8 @@ class LoopingCallStarterTests(unittest.TestCase):
             msg=f'init object exit_on_err is not {self.expected.get("INIT_EXIT")}: {new.exit_on_err}')
         self.assertEqual(self.expected['INIT_RUNNING'], new.running, \
             msg=f'init object running is not {self.expected.get("INIT_RUNNING")}: {new.running}')
+        self.assertEqual(self.expected['INIT_DUMP_PATH'], new.dump_path, \
+            msg=f'init object dump_path is not {self.expected.get("INIT_DUMP_PATH")}: {new.dump_path}')
 
     def test_error(self):
         # inject a clock in LoopingCallStarter before the LoopingCall is started
@@ -66,6 +71,27 @@ class LoopingCallStarterTests(unittest.TestCase):
             msg=f'running is not {self.expected.get("ERROR_RUNNING")}: {new.running}')
         self.assertEqual(self.expected['ERROR_ERRORS'], new.errors, \
             msg=f'errors is not {self.expected.get("ERROR_ERRORS")}: {new.errors}')
+
+    def test_dump(self):
+        dump_path = 'err.json'
+        # inject a clock in LoopingCallStarter before the LoopingCall is started
+        clock = Clock()
+        new = LoopingCallStarter(error_call, 10, dump_path=dump_path, log=False, _clock=clock)
+
+        # trigger error_call
+        clock.advance(10)
+
+        trace = None
+        with open(dump_path, 'r') as dump_file:
+            trace = json.load(dump_file)
+
+        self.assertTrue('trace' in trace, \
+            msg=f'trace key not found in dump path: {trace}')
+
+        err_line = trace.get('trace').split('\n')[-3]
+
+        self.assertEqual(self.expected['DUMP_LINE'], err_line, \
+            msg=f'dump error line is not {self.expected.get("DUMP_LINE")}: {err_line}')
 
     def test_exit(self):
         # inject a clock in LoopingCallStarter before the LoopingCall is started

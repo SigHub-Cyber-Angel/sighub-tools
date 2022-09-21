@@ -1,7 +1,9 @@
 """ Wrapper functions and classes for common patterns used with
 the Twisted framework (https://twistedmatrix.com).
 """
+import json
 import logging
+import os
 
 from twisted.internet import (
     reactor,
@@ -15,7 +17,8 @@ class LoopingCallStarter(task.LoopingCall):
 
     # pylint: disable=too-many-instance-attributes
     # pylint: disable=too-many-arguments
-    def __init__(self, call, interval, log=True, now=False, exit_on_err=False, _clock=None):
+    def __init__(self, call, interval, log=True, now=False,
+                 exit_on_err=False, dump_path=None, _clock=None):
         """ Create a started LoopingCall with error handling.
 
             @param call: the function to run at the given interval
@@ -23,6 +26,7 @@ class LoopingCallStarter(task.LoopingCall):
             @param log: whether to log caught errors or not
             @param now: whether to run call immediately or not
             @param exit_on_err: whether to stop the reactor when an error is caught or not
+            @param dump_path: where to write an error dump on error
             @param _clock: for unit testing only
 
             @return LoopingCallStarter
@@ -32,6 +36,7 @@ class LoopingCallStarter(task.LoopingCall):
         self.log = log
         self.now = now
         self.exit_on_err = exit_on_err
+        self.dump_path = dump_path
         self.errors = []
 
         # initialize LoopingCall
@@ -63,6 +68,15 @@ class LoopingCallStarter(task.LoopingCall):
 
         if self.log:
             logging.error(err)
+
+        # dump the error to a file if a dump path has been specified
+        if self.dump_path is not None:
+            if os.path.exists(self.dump_path):
+                os.unlink(self.dump_path)
+            info = { 'trace' : f'{err.getTraceback()}' }
+
+            with open(self.dump_path, 'w') as dump_file:
+                json.dump(info, dump_file)
 
         if self.exit_on_err:
             stop_running()
