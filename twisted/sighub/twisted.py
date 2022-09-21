@@ -75,6 +75,7 @@ class LoopingCallStarter(task.LoopingCall):
                 os.unlink(self.dump_path)
             info = { 'trace' : f'{err.getTraceback()}' }
 
+            # pylint: disable=unspecified-encoding
             with open(self.dump_path, 'w') as dump_file:
                 json.dump(info, dump_file)
 
