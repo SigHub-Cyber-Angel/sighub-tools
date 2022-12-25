@@ -78,7 +78,7 @@ class LoopingCallStarter(task.LoopingCall):
                 os.unlink(self.dump_path)
             info = { 'trace' : f'{err.getTraceback()}' }
 
-            # pylint: disable=useless-option-value
+            # pylint: disable=unspecified-encoding
             with open(self.dump_path, 'w') as dump_file:
                 json.dump(info, dump_file)
 
@@ -155,7 +155,7 @@ class ReaderEventLoopWrapper():
         """ Do nothing if the connection is lost.
         """
 
-    # pyling: disable=unspecified-encoding
+    # pylint: disable=useless-option-value
     # pylint: disable=no-self-use
     # pylint: disable=invalid-name
     def logPrefix(self):
