@@ -19,9 +19,21 @@ def dummy_call():
 def error_call():
     raise Exception()
 
+class ArgsUpdateChecker:
+
+    def __init__(self):
+        self.check = 0
+
+    def inc(self):
+        self.check += 1
+
+def dummy_args_call(arg_1: ArgsUpdateChecker):
+    arg_1.inc()
+
 class LoopingCallStarterTests(unittest.TestCase):
     def setUp(self):
         self.expected = {
+            'ARGS_INCREMENTED': 1,
             'INIT_CALL': dummy_call,
             'INIT_INTERVAL': 10,
             'INIT_LOG': True,
@@ -35,6 +47,7 @@ class LoopingCallStarterTests(unittest.TestCase):
             'EXIT_RUNNING': False,
             'EXIT_ERRORS': [ '<twisted.python.failure.Failure builtins.Exception: >' ],
             'EXIT_REACTOR_RUNNING': False,
+            'KWARGS_INCREMENTED': 1,
             'OKAY_RUNNING': True,
             'OKAY_NOT_STARTTIME': None,
         }
@@ -58,6 +71,32 @@ class LoopingCallStarterTests(unittest.TestCase):
             msg=f'init object running is not {self.expected.get("INIT_RUNNING")}: {new.running}')
         self.assertEqual(self.expected['INIT_DUMP_PATH'], new.dump_path, \
             msg=f'init object dump_path is not {self.expected.get("INIT_DUMP_PATH")}: {new.dump_path}')
+
+    def test_args(self):
+        # inject a clock in LoopingCallStarter before the LoopingCall is started
+        clock = Clock()
+
+        update_checker = ArgsUpdateChecker()
+        new = LoopingCallStarter(dummy_args_call, 10, args=(update_checker,), log=False, _clock=clock)
+
+        # trigger an args increment
+        clock.advance(10)
+
+        self.assertEqual(self.expected['ARGS_INCREMENTED'], update_checker.check, \
+            msg=f'check is not {self.expected.get("ARGS_INCREMENTED")}: {update_checker.check}')
+
+    def test_kwargs(self):
+        # inject a clock in LoopingCallStarter before the LoopingCall is started
+        clock = Clock()
+
+        update_checker = ArgsUpdateChecker()
+        new = LoopingCallStarter(dummy_args_call, 10, kwargs={"arg_1": update_checker}, log=False, _clock=clock)
+
+        # trigger an args increment
+        clock.advance(10)
+
+        self.assertEqual(self.expected['KWARGS_INCREMENTED'], update_checker.check, \
+            msg=f'check is not {self.expected.get("KWARGS_INCREMENTED")}: {update_checker.check}')
 
     def test_error(self):
         # inject a clock in LoopingCallStarter before the LoopingCall is started

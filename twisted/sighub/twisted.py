@@ -17,12 +17,15 @@ class LoopingCallStarter(task.LoopingCall):
 
     # pylint: disable=too-many-instance-attributes
     # pylint: disable=too-many-arguments
-    def __init__(self, call, interval, log=True, now=False,
+    # pylint: disable=dangerous-default-value
+    def __init__(self, call, interval, args=(), kwargs={}, log=True, now=False,
                  exit_on_err=False, dump_path=None, _clock=None):
         """ Create a started LoopingCall with error handling.
 
             @param call: the function to run at the given interval
             @param interval: the interval to run the function at in seconds
+            @param args: tuple of arguments to be passed to the function
+            @param kwargs: dictionary of keword arguments to be passed to the function
             @param log: whether to log caught errors or not
             @param now: whether to run call immediately or not
             @param exit_on_err: whether to stop the reactor when an error is caught or not
@@ -40,7 +43,7 @@ class LoopingCallStarter(task.LoopingCall):
         self.errors = []
 
         # initialize LoopingCall
-        super().__init__(call)
+        super().__init__(call, *args, **kwargs)
 
         if _clock is not None:
             self.clock.callLater = _clock.callLater
@@ -75,7 +78,7 @@ class LoopingCallStarter(task.LoopingCall):
                 os.unlink(self.dump_path)
             info = { 'trace' : f'{err.getTraceback()}' }
 
-            # pylint: disable=unspecified-encoding
+            # pylint: disable=useless-option-value
             with open(self.dump_path, 'w') as dump_file:
                 json.dump(info, dump_file)
 
@@ -152,7 +155,7 @@ class ReaderEventLoopWrapper():
         """ Do nothing if the connection is lost.
         """
 
-    # pylint: disable=useless-option-value
+    # pyling: disable=unspecified-encoding
     # pylint: disable=no-self-use
     # pylint: disable=invalid-name
     def logPrefix(self):
